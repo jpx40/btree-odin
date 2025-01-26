@@ -288,8 +288,10 @@ get_node :: proc(tree: ^Tree($K, $T), k: K) -> (node: ^Node(K, T), check: bool) 
 }
 next :: proc(it: ^Iterator($K, $T)) -> (key: K, val: T, check: bool) {
     node := it.node
-    if node.weight >= range[0] {
-        range
+    if node.weight >= it.range[0] {
+        it.range[0] = node.weight
+        it.node = it.node.right
+        it.direction = .Right
     }
 	if it.node != nil {
 		key = it.node.data.key
