@@ -239,11 +239,9 @@ get_key_size :: proc(key: rawptr, type: typeid) -> int {
 
 Iterator :: struct($K: typeid, $T: typeid) {
 	node:      ^Node(K, T),
-	pos:       u64,
+	is_finished:   bool,
 	depth:     int,
-	range:     [2]int
-	
-	
+	range:     [2]int,
 	direction: Direction,
 }
 Direction :: enum u8 {
@@ -251,21 +249,16 @@ Direction :: enum u8 {
 	Right,
 }
 iter :: proc(tree: ^Tree($K, $T)) -> Iterator(K, T) {
-    if tree.head == nil {
-        
-       	return Iterator(K, T){
-            range =  {0,0}
-        }
+	if tree.head == nil {
 
-    }
+		return Iterator(K, T){range = {0, 0}}
 
-    f := find_first_node(tree.head)
-    l := find_last_node(tree.head)
-    range := {f.weight,l.weight}
-   	return Iterator(K, T) {
-        node = f, 
-        range = range
-    }
+	}
+
+	f := find_first_node(tree.head)
+	l := find_last_node(tree.head)
+	range := [2]int{f.weight, l.weight}
+	return Iterator(K, T){node = f, range = range}
 
 }
 get :: proc(tree: ^Tree($K, $T), k: K) -> (key: K, val: T, check: bool) {
@@ -287,27 +280,35 @@ get_node :: proc(tree: ^Tree($K, $T), k: K) -> (node: ^Node(K, T), check: bool) 
 	return find_node(tree.head, k, i)
 }
 next :: proc(it: ^Iterator($K, $T)) -> (key: K, val: T, check: bool) {
-    node := it.node
-    if node.weight >= it.range[0] {
-        it.range[0] = node.weight
-        it.node = it.node.right
-        it.direction = .Right
-    }
+if it.is_finished {
+
+return
+}
+	
 	if it.node != nil {
-		key = it.node.data.key
-		val = it.node.data.value
-		it.node = it.node.left
-		if node.right != nil {
-		
-		} else	if  node.parent != nil {
-		      it.range[0] = node.parent
-				it.node = node.parent
-						
-		
+		node := it.node
+
+
+		if node.weight >= it.range[0] {
+			if node.right != nil {
+				it.range[0] = node.weight
+				it.node = it.node.right
+				it.direction = .Right
+			}
 		}
-		return key, value, true
-	} else {
-		return
+
+		if node.parent != nil && it.direction == .Left {
+			it.range[0] = node.parent.weight
+			it.node = node.parent
+
+
+		} else {
+			it.direction = .Left
+		}
+		if it.node.weight >= it.range[1] {
+			it.is_finished = true
+		}
+		return node.data.key, node.data.value, true
 	}
 	return
 }
@@ -420,35 +421,45 @@ remove :: proc(tree: ^Tree($K, $T), key: K) -> bool {
 }
 
 
-find_first_node :: proc(node: ^Node($K,$T)) -> (first_n: ^Node(K,T) ) {
-    if node.left != nil {
-        
-        return find_first_node(node.left)
-    } 
-    
-    return  node   
+find_first_node :: proc(node: ^Node($K, $T)) -> (first_n: ^Node(K, T)) {
+	if node.left != nil {
+
+		return find_first_node(node.left)
+	}
+
+	return node
 }
-find_last_node :: proc(node: ^Node($K,$T)) -> (first_n: ^Node(K,T) ) {
-    if node.right != nil {
-        
-        return find_first_node(node.right)
-    } 
-    
-    return  node   
+find_last_node :: proc(node: ^Node($K, $T)) -> (first_n: ^Node(K, T)) {
+	if node.right != nil {
+
+		return find_last_node(node.right)
+	}
+
+	return node
 }
 main :: proc() {
 
 	tree := make(Tree(string, int))
 	b := push(&tree, "0", 1)
 	b = push(&tree, "21", 1)
-
+	b = push(&tree, "12332", 1)
 	b = push(&tree, "-12", 1)
-	remove(&tree, "0")
+	// remove(&tree, "0")
 
-	remove(&tree, "21")
-	fmt.println("Key: ", tree.head.data.key, " Value: ", tree.head.data.value)
+	// remove(&tree, "21")
+	// fmt.println("Key: ", tree.head.data.key, " Value: ", tree.head.data.value)
 	k, v, b2 := get(&tree, "-12")
-	fmt.println("Key: ", k, " Value: ", b2)
+	it := iter(&tree)
+	a, b3, c := next(&it)
+		fmt.println("Key: ", a, " Value: ", b3)
+		a, b3, c = next(&it)
+			fmt.println("Key: ", a, " Value: ", b3)
+	a, b3, c = next(&it)
+		fmt.println("Key: ", a, " Value: ", b3)
+		a, b3, c = next(&it)
+			fmt.println("Key: ", a, " Value: ", b3)
+	a, b3, c = next(&it)
+	fmt.println("Key: ", a, " Value: ", b3)
 	// fmt.println("Key: ", tree.head.right.left.data.key,
 	// " Value: ",tree.head.right.left.data.value)
 
